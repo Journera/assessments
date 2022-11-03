@@ -203,7 +203,20 @@ func (l *LinkedList[V]) String() string {
 }
 
 func (l *LinkedList[V]) Sort(comparator func(i, j V) int) {
-
+	if l.size == 0 {
+		return
+	}
+	current := l.first
+	for current != nil {
+		index := current.next
+		for index != nil {
+			if comparator(current.Value, index.Value) > 0 {
+				current.Value, index.Value = index.Value, current.Value
+			}
+			index = index.next
+		}
+		current = current.next
+	}
 }
 
 // iter is used internally and is not locked.

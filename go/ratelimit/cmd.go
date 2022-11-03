@@ -7,23 +7,24 @@ import (
 	"time"
 )
 
+var (
+	reject      bool
+	clientCount int
+	msgCount    int
+	sendRate    int
+	limitRate   int
+	variance    int
+)
+
 func ProvideRateLimitCommand() *cobra.Command {
-	var (
-		reject      bool
-		clientCount int
-		msgCount    int
-		sendRate    int
-		limitRate   int
-		variance    int
-	)
 	cmdRatelimit := &cobra.Command{
 		Use:   "ratelimit",
 		Short: "Run Rate Limiter",
 		Long:  "Run Rate Limiter and test output",
 		Run: func(cmd *cobra.Command, args []string) {
 			log.Info().Msg("RateLimit Begin")
-			rl := ProvideRateLimiter(limitRate, reject)
-			err := rl.Start()
+			limiter := ProvideRateLimiter(limitRate, reject)
+			err := limiter.Start()
 			if err != nil {
 				log.Err(err).Msg("Failed to start RateLimiter")
 				return
@@ -31,12 +32,12 @@ func ProvideRateLimitCommand() *cobra.Command {
 
 			gofakeit.Seed(time.Now().Unix())
 
-			collector := NewCollector(rl)
+			collector := NewCollector(limiter)
 			senders := createSenders(clientCount)
 			var done sync.WaitGroup
 			done.Add(clientCount)
 			for i, sender := range senders {
-				c := NewClient(rl, sender, msgCount, calculateRate(clientCount, i, sendRate, variance))
+				c := NewClient(limiter, sender, msgCount, calculateRate(clientCount, i, sendRate, variance))
 				go func() { // run each sender
 					c.Run()
 					done.Done()
@@ -44,10 +45,10 @@ func ProvideRateLimitCommand() *cobra.Command {
 			}
 			go func() { // wait for all senders to complete
 				done.Wait()
-				rl.Close()
+				limiter.Close()
 			}()
 			collector.Run()
-			collector.Evaluate()
+			Evaluate(limiter, collector)
 		},
 	}
 	cmdRatelimit.Flags().IntVarP(&clientCount, "clients", "c", 5, "Number of clients")
@@ -88,4 +89,48 @@ func createSenders(count int) []string {
 func calculateRate(numClients, seq, rate, variance int) int {
 	i := numClients / 2 // integer math is desired here
 	return ((seq - i) * variance) + rate
+}
+
+func Evaluate(limiter RateLimiter, collector *Collector) {
+	log.Info().Msgf("Evaluate | %d messages received", collector.received.Size())
+	bySender := make(map[string]*Stats)
+	for msg := range collector.received.Iter() {
+		stats, ok := bySender[msg.Sender]
+		if ok {
+			stats.Messages.AddLast(msg)
+		} else {
+			stats = NewStats(msg)
+			bySender[msg.Sender] = stats
+		}
+	}
+
+	if len(bySender) != clientCount {
+		log.Error().Msgf("The number of clients (%d) does not match with the received messages (%d)", clientCount, len(bySender))
+	}
+
+	for sender, stats := range bySender {
+		log.Info().Str("Sender", sender).Msg("== Checking sender ==")
+
+		for msg := range stats.Messages.Iter() {
+			dur := msg.ReceiveTime.Sub(msg.SendTime)
+			stats.TotalTime += dur
+			if stats.MinTime == 0 || dur < stats.MinTime {
+				stats.MinTime = dur
+			}
+			if dur > stats.MaxTime {
+				stats.MaxTime = dur
+			}
+		}
+		stats.AverageTime = stats.TotalTime / time.Duration(stats.Messages.Size())
+		log.Info().
+			Int("Msgs", stats.Messages.Size()).
+			Dur("Min", stats.MinTime).
+			Dur("Max", stats.MaxTime).
+			Dur("Avg", stats.AverageTime).
+			Msg("Stats |")
+
+		if stats.Messages.Size() < msgCount {
+			log.Warn().Int("Msgs", stats.Messages.Size()).Str("Sender", sender).Msg("Messages were lost")
+		}
+	}
 }

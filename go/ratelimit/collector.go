@@ -26,12 +26,8 @@ func (c *Collector) Run() {
 	rcvChan := c.limiter.ReceiveChan()
 	for msg := range rcvChan {
 		msg.ReceiveTime = time.Now()
-		log.Debug().Int("Msg", msg.Id).TimeDiff("Delay", msg.ReceiveTime, msg.SendTime).Msg("Received")
+		log.Trace().Int("Msg", msg.Id).TimeDiff("Delay", msg.ReceiveTime, msg.SendTime).Msg("Received")
 		c.received.AddLast(msg)
 	}
 	log.Debug().Msg("Collector complete")
-}
-
-func (c *Collector) Evaluate() {
-	log.Info().Msgf("Evaluate | %d messages received", c.received.Size())
 }

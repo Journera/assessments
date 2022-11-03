@@ -39,7 +39,7 @@ func (c *Client) Run() {
 	for i := 0; i < c.msgCount; i++ {
 		msg := NewMessage(i, c.sender,
 			fmt.Sprintf("%s %s %s", gofakeit.HackerVerb(), gofakeit.HackerAdjective(), gofakeit.HackerNoun()))
-		log.Debug().Str("Sender", c.sender).Stringer("Msg", msg).Msg("Sending")
+		log.Trace().Str("Sender", c.sender).Stringer("Msg", msg).Msg("Sending")
 		err = c.limiter.Send(msg)
 		if err != nil {
 			c.failed.AddLast(msg)

@@ -18,7 +18,7 @@ cd assessments/go
 go build
 ```
 
-You should see the `assess` binary in the directory. This will have a functional,
+You should see the `assessments` binary in the directory. This will have a functional,
 but incorrect and/or incomplete implementation of the various tasks. Your job will
 be complete the implementation and insure it runs properly. Unit tests are not
 mandatory, but recommended.
@@ -28,3 +28,15 @@ The Rate Limiter will attempt to prevent a single sending client from sending to
 messages in a given time frame. The parameters it will be given will be:
 - limit - the maximum number of messages allowed per minute (600 = 10/sec)
 - reject - if true then messages will be rejected if they exceed the rate, otherwise they will be delayed
+
+### Technical considerations:
+- If messages are to be delayed, blocking on the call to `Send()`, to force a slowdown, is allowed.
+- Proper logging is advised, see examples from the client code.
+- You can assume things like unlimited memory. If there are issues that arise during your implementation
+that would require a vast amount of complexity, you can make certain assumptions like this to get the 
+project complete in a reasonable amount of time. Although complete solutions are preferred.
+
+### Examples:
+- `./assessments ratelimit` this will run with the default parameters
+- `./assessments ratelimit -c 2 -m 10 -s 60 -d`
+  - Run with 2 clients, each sending 10 messages at 1 msg/sec, with debug logging - good dev testing params

@@ -8,11 +8,14 @@ import (
 
 func main() {
 	var debug bool
+	var trace bool
 	var rootCmd = &cobra.Command{
 		Use:               "assess",
 		CompletionOptions: cobra.CompletionOptions{DisableDefaultCmd: true},
 		PersistentPreRun: func(cmd *cobra.Command, args []string) {
-			if debug {
+			if trace {
+				zerolog.SetGlobalLevel(zerolog.TraceLevel)
+			} else if debug {
 				zerolog.SetGlobalLevel(zerolog.DebugLevel)
 			} else {
 				zerolog.SetGlobalLevel(zerolog.InfoLevel)
@@ -20,6 +23,7 @@ func main() {
 		},
 	}
 	rootCmd.PersistentFlags().BoolVarP(&debug, "debug", "d", false, "Enable debug logging")
+	rootCmd.PersistentFlags().BoolVarP(&trace, "trace", "t", false, "Enable trace logging")
 	rootCmd.AddCommand(ratelimit.ProvideRateLimitCommand())
 	rootCmd.Execute()
 }

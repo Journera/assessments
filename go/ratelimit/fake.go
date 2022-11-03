@@ -34,7 +34,7 @@ func (rl *FakeRateLimiter) Send(msg *Message) error {
 		if rl.reject {
 			return ErrReject
 		}
-		time.Sleep(time.Millisecond * 100)
+		time.Sleep(time.Millisecond * time.Duration(rand.Intn(50)+50))
 	}
 	rl.msgChan <- msg
 	return nil
