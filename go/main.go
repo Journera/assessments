@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/journera/assessments/cmd"
+	"github.com/journera/assessments/ratelimit"
 	"github.com/rs/zerolog"
 	"github.com/spf13/cobra"
 )
@@ -20,6 +20,6 @@ func main() {
 		},
 	}
 	rootCmd.PersistentFlags().BoolVarP(&debug, "debug", "d", false, "Enable debug logging")
-	rootCmd.AddCommand(cmd.ProvideRateLimitCommand())
+	rootCmd.AddCommand(ratelimit.ProvideRateLimitCommand())
 	rootCmd.Execute()
 }

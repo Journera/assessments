@@ -1,16 +1,10 @@
-package cmd
+package ratelimit
 
 import (
 	"github.com/brianvoe/gofakeit"
-	"github.com/journera/assessments/common"
-	"github.com/journera/assessments/ratelimit"
 	"github.com/spf13/cobra"
 	"sync"
 	"time"
-)
-
-var (
-	log = common.ProvideLog()
 )
 
 func ProvideRateLimitCommand() *cobra.Command {
@@ -28,7 +22,7 @@ func ProvideRateLimitCommand() *cobra.Command {
 		Long:  "Run Rate Limiter and test output",
 		Run: func(cmd *cobra.Command, args []string) {
 			log.Info().Msg("RateLimit Begin")
-			rl := ratelimit.ProvideRateLimiter(limitRate, reject)
+			rl := ProvideRateLimiter(limitRate, reject)
 			err := rl.Start()
 			if err != nil {
 				log.Err(err).Msg("Failed to start RateLimiter")
@@ -37,12 +31,12 @@ func ProvideRateLimitCommand() *cobra.Command {
 
 			gofakeit.Seed(time.Now().Unix())
 
-			collector := ratelimit.NewCollector(rl)
+			collector := NewCollector(rl)
 			senders := createSenders(clientCount)
 			var done sync.WaitGroup
 			done.Add(clientCount)
 			for i, sender := range senders {
-				c := ratelimit.NewClient(rl, sender, msgCount, calculateRate(clientCount, i, sendRate, variance))
+				c := NewClient(rl, sender, msgCount, calculateRate(clientCount, i, sendRate, variance))
 				go func() { // run each sender
 					c.Run()
 					done.Done()
