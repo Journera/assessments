@@ -4,49 +4,31 @@ import (
 	"fmt"
 	"github.com/brianvoe/gofakeit"
 	"github.com/journera/assessments/common"
-	"sync"
 	"time"
 )
 
 type Client struct {
 	limiter    RateLimiter
+	sender     string
 	msgCount   int
 	msgsPerMin int
-	randomMax  time.Duration
-
-	done     sync.WaitGroup
-	received common.LinkedList[*Message]
-	failed   common.LinkedList[*Message]
+	failed     *common.LinkedList[*Message]
 }
 
-func NewClient(limiter RateLimiter, msgCount, msgsPerMin int, randomMax time.Duration) *Client {
+func NewClient(limiter RateLimiter, sender string, msgCount, msgsPerMin int) *Client {
 	c := &Client{
 		limiter:    limiter,
+		sender:     sender,
 		msgCount:   msgCount,
 		msgsPerMin: msgsPerMin,
-		randomMax:  randomMax,
-
-		received: common.NewLinkedList[*Message](),
-		failed:   common.NewLinkedList[*Message](),
+		failed:     common.NewLinkedList[*Message](),
 	}
-	c.done.Add(1)
-	go c.receive()
 	return c
 }
 
+// Run will send all messages and block until complete
 func (c *Client) Run() {
-	log.Info().Msgf("Running | Msgs:%d, PerMin:%d", c.msgCount, c.msgsPerMin)
-	c.send()
-	c.limiter.Close()
-	log.Debug().Msg("Waiting for receive to finish")
-	c.done.Wait()
-	log.Info().Msgf("Complete | Received:%d, Failed:%d", c.received.Size(), c.failed.Size())
-	c.Evaluate()
-}
-
-func (c *Client) send() {
-	gofakeit.Seed(time.Now().Unix())
-	log.Info().Msg("Starting sender")
+	log.Info().Msgf("Sending | Sender:%s, Msgs:%d, PerMin:%d", c.sender, c.msgCount, c.msgsPerMin)
 	var throttle *time.Ticker
 	if c.msgsPerMin > 0 {
 		throttle = time.NewTicker(time.Minute / time.Duration(c.msgsPerMin))
@@ -55,10 +37,9 @@ func (c *Client) send() {
 
 	var err error
 	for i := 0; i < c.msgCount; i++ {
-		msg := NewMessage(i,
-			gofakeit.HackerAbbreviation(),
+		msg := NewMessage(i, c.sender,
 			fmt.Sprintf("%s %s %s", gofakeit.HackerVerb(), gofakeit.HackerAdjective(), gofakeit.HackerNoun()))
-		log.Debug().Stringer("Msg", msg).Msg("Sending")
+		log.Debug().Str("Sender", c.sender).Stringer("Msg", msg).Msg("Sending")
 		err = c.limiter.Send(msg)
 		if err != nil {
 			c.failed.AddLast(msg)
@@ -67,21 +48,5 @@ func (c *Client) send() {
 			<-throttle.C
 		}
 	}
-	log.Debug().Msg("Sender complete")
-}
-
-func (c *Client) receive() {
-	log.Info().Msg("Starting receiver")
-	rcvChan := c.limiter.ReceiveChan()
-	for msg := range rcvChan {
-		msg.ReceiveTime = time.Now()
-		log.Debug().Int("Msg", msg.Id).TimeDiff("Delay", msg.ReceiveTime, msg.SendTime).Msg("Received")
-		c.received.AddLast(msg)
-	}
-	log.Debug().Msg("Receiver complete")
-	c.done.Done()
-}
-
-func (c *Client) Evaluate() {
-	log.Info().Msg("Evaluate")
+	log.Debug().Msgf("Sender %s complete", c.sender)
 }

@@ -1,16 +1,12 @@
 package main
 
 import (
-	"github.com/journera/assessments/common"
-	"github.com/journera/assessments/ratelimit"
+	"github.com/journera/assessments/cmd"
 	"github.com/rs/zerolog"
 	"github.com/spf13/cobra"
 )
 
 func main() {
-	log := common.ProvideLog()
-	log.Info().Msg("Begin")
-
 	var debug bool
 	var rootCmd = &cobra.Command{
 		Use:               "assess",
@@ -24,6 +20,6 @@ func main() {
 		},
 	}
 	rootCmd.PersistentFlags().BoolVarP(&debug, "debug", "d", false, "Enable debug logging")
-	rootCmd.AddCommand(ratelimit.ProvideCommand())
+	rootCmd.AddCommand(cmd.ProvideRateLimitCommand())
 	rootCmd.Execute()
 }
