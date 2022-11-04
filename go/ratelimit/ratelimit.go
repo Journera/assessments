@@ -4,6 +4,9 @@ import (
 	"io"
 )
 
+// RateLimiter will limit the number of messages sent through it.
+// Depending on configuration, it will either delay or reject messages to
+// ensure a sender is not exceeding the limit.
 type RateLimiter interface {
 	io.Closer
 

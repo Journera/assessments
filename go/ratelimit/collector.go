@@ -20,7 +20,8 @@ func NewCollector(limiter RateLimiter) *Collector {
 	return c
 }
 
-// Run will send all messages and block until
+// Run will collect all messages from the rate limiter.
+// This will block until the limiter closes the channel
 func (c *Collector) Run() {
 	log.Info().Msg("Starting collector")
 	rcvChan := c.limiter.ReceiveChan()

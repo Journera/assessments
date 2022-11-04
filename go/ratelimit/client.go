@@ -28,7 +28,12 @@ func NewClient(limiter RateLimiter, sender string, msgCount, msgsPerMin int) *Cl
 
 // Run will send all messages and block until complete
 func (c *Client) Run() {
-	log.Info().Msgf("Sending | Sender:%s, Msgs:%d, PerMin:%d", c.sender, c.msgCount, c.msgsPerMin)
+	log.Debug().
+		Str("Sender", c.sender).
+		Int("Msgs", c.msgCount).
+		Int("PerMin", c.msgsPerMin).
+		Msg("Starting Client")
+
 	var throttle *time.Ticker
 	if c.msgsPerMin > 0 {
 		throttle = time.NewTicker(time.Minute / time.Duration(c.msgsPerMin))
@@ -48,5 +53,5 @@ func (c *Client) Run() {
 			<-throttle.C
 		}
 	}
-	log.Debug().Msgf("Sender %s complete", c.sender)
+	log.Debug().Str("Sender", c.sender).Msg("Client complete")
 }
