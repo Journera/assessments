@@ -23,7 +23,7 @@ func ProvideRateLimitCommand() *cobra.Command {
 		Long:  "Run Rate Limiter and test output",
 		Run: func(cmd *cobra.Command, args []string) {
 			start := time.Now()
-			log.Info().Msg("RateLimit Begin")
+			log.Info().Int("Limit", limitRate).Msg("RateLimit Begin")
 			limiter := ProvideRateLimiter(limitRate, reject)
 			err := limiter.Start()
 			if err != nil {
@@ -52,7 +52,7 @@ func ProvideRateLimitCommand() *cobra.Command {
 			}
 			collector.Run()
 			Evaluate(collector)
-			log.Info().Stringer("RunTime", time.Since(start)).Msg("RateLimit Complete")
+			log.Info().Stringer("RunTime", time.Since(start)).Msg("RateLimit Complete |")
 		},
 	}
 	cmdRatelimit.Flags().IntVarP(&clientCount, "clients", "c", 5, "Number of clients")
@@ -91,6 +91,9 @@ func createSenders(count int) []string {
 // Example: clients: 5, rate: 100, variance: 10
 // Results: 80, 90, 100, 110, 120
 func calculateRate(numClients, seq, rate, variance int) int {
+	if numClients == 1 {
+		return rate + variance
+	}
 	i := numClients / 2 // integer math is desired here
 	return ((seq - i) * variance) + rate
 }
@@ -144,5 +147,5 @@ func Evaluate(collector *Collector) {
 	log.Info().
 		Int("Sent", msgCount*clientCount).
 		Int("Rcvd", totalMsgs).
-		Msg("Messages | ")
+		Msg("Messages |")
 }

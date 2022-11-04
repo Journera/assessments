@@ -10,10 +10,10 @@ import (
 type RateLimiter interface {
 	io.Closer
 
-	// Start the limiter and initiate any internal activities. Does not block.
+	// Start the limiter (if needed) and initiate any internal activities. Does not block.
 	Start() error
 
-	// Send a message.
+	// Send a message, if not over limit, will be delivered to ReceiveChan in near-real time.
 	// If reject is enabled, may return an error.
 	// If reject is disabled, may block until enough time has elapsed.
 	Send(msg *Message) error

@@ -28,7 +28,7 @@ func NewClient(limiter RateLimiter, sender string, msgCount, msgsPerMin int) *Cl
 
 // Run will send all messages and block until complete
 func (c *Client) Run() {
-	log.Debug().
+	log.Info().
 		Str("Sender", c.sender).
 		Int("Msgs", c.msgCount).
 		Int("PerMin", c.msgsPerMin).
@@ -47,7 +47,12 @@ func (c *Client) Run() {
 		log.Trace().Str("Sender", c.sender).Stringer("Msg", msg).Msg("Sending")
 		err = c.limiter.Send(msg)
 		if err != nil {
+			log.Warn().Str("Sender", c.sender).Int("Msg", msg.Id).Msg("Msg Rejected")
 			c.failed.AddLast(msg)
+		}
+		delay := time.Since(msg.SendTime)
+		if delay > time.Millisecond*50 { // arbitrary value to log long-ish method blocks
+			log.Warn().Str("Sender", msg.Sender).Dur("Dur", delay).Msg("Blocked")
 		}
 		if throttle != nil {
 			<-throttle.C
