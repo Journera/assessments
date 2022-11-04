@@ -8,7 +8,7 @@ var (
 	log = common.ProvideLog()
 )
 
-func ProvideRateLimiter(limit int, reject bool) RateLimiter {
+func ProvideRateLimiter(msgPerMin int, reject bool) RateLimiter {
 	// TODO: replace with your actual RateLimiter
 	return NewFakeRateLimiter(reject)
 }
